@@ -234,4 +234,6 @@ curl -X POST "http://localhost:3000/api/recognize" \
 
 ## 14. 许可证
 
-当前仓库未声明许可证。如需开源发布，请补充 `LICENSE` 文件并在本节更新。
+本项目采用 MIT 许可证。
+
+许可证全文见 [LICENSE](LICENSE)。
