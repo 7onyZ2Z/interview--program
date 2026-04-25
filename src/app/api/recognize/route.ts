@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
         {
           role: "system",
           content:
-            '你是一个物品识别专家。用户会给你一张图片，你需要识别图片中的物品。请以严格的 JSON 格式返回结果，包含两个字段：name（物品名称）和 weight（估算重量，带单位）。示例：{"name":"苹果","weight":"约200g"}。只返回 JSON，不要返回其他内容。',
+            '你是一个物品识别专家。用户会给你一张图片，你需要识别图片中的物品。请以严格的 JSON 格式返回结果，包含两个字段：name（物品名称）和 weight（估算重量，带单位）。示例：{"name":"苹果","weight":"约200g"}。只返回 JSON，不要返回其他内容。并且不要输出任何解释说明，只返回结果即可',
         },
         {
           role: "user",
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
           ],
         },
       ],
-      max_tokens: 300,
+      max_tokens: 1024,
     });
 
     const content = response.choices[0]?.message?.content?.trim() || "";
@@ -77,21 +77,37 @@ export async function POST(request: NextRequest) {
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json(
-        { success: false, error: "模型返回格式异常，请重试" },
+        { success: false, error: `模型返回格式异常: ${content.slice(0, 200)}` },
         { status: 500 }
       );
     }
 
-    const result = JSON.parse(jsonMatch[0]);
+    let result: { name?: string; weight?: string };
+    try {
+      result = JSON.parse(jsonMatch[0]);
+    } catch {
+      return NextResponse.json(
+        { success: false, error: `JSON 解析失败: ${jsonMatch[0].slice(0, 200)}` },
+        { status: 500 }
+      );
+    }
+
+    if (!result.name || !result.weight) {
+      return NextResponse.json(
+        { success: false, error: `返回数据缺少字段: ${JSON.stringify(result)}` },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
       data: { name: result.name, weight: result.weight },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Recognition error:", error);
+    const message = error instanceof Error ? error.message : "识别失败，请稍后重试";
     return NextResponse.json(
-      { success: false, error: "识别失败，请稍后重试" },
+      { success: false, error: message },
       { status: 500 }
     );
   }
