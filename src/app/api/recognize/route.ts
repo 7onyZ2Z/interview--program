@@ -5,7 +5,15 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 export async function POST(request: NextRequest) {
-  const formData = await request.formData();
+  let formData: FormData;
+  try {
+    formData = await request.formData();
+  } catch {
+    return NextResponse.json(
+      { success: false, error: "请上传图片文件" },
+      { status: 400 }
+    );
+  }
   const file = formData.get("image");
 
   if (!file || !(file instanceof File)) {
